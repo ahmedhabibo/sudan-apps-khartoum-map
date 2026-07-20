@@ -11,7 +11,7 @@
  */
 
 const WORKBOX_CDN = "https://unpkg.com/workbox-sw@7.4.1/build/workbox-sw.js";
-const DEXIE_CDN = "https://unpkg.com/dexie@3.2.7/dist/dexie.min.js";
+const DEXIE_CDN = "https://unpkg.com/dexie@4.0.11/dist/dexie.min.js";
 const LEAFLET_JS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 const LEAFLET_CSS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 
