@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#1a5632">
+  <meta name="description" content="خرطوم ماب — دليل الخدمات وخرائط تعمل دون اتصال">
+  <link rel="manifest" href="manifest.json">
+  <title>خرطوم ماب — دليل الخدمات</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app" class="app-layout">
+    <!-- Sidebar nav -->
+    <nav id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <span class="app-title" id="app-title">خرطوم ماب</span>
+      </div>
+      <ul class="nav-list" id="nav-list">
+        <li class="nav-item active" data-view="map" id="nav-map">الخريطة</li>
+        <li class="nav-item" data-view="directory" id="nav-directory">الدليل</li>
+        <li class="nav-item" data-view="sync" id="nav-sync">المزامنة</li>
+      </ul>
+      <div class="sidebar-footer">
+        <span id="update-status" class="update-status">جاهز</span>
+      </div>
+    </nav>
+
+    <!-- Main content area -->
+    <main id="content" class="content">
+      <div id="view-container" class="view-container">
+        <div class="loading-placeholder">جارٍ التحميل…</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Leaflet CSS (precached by SW) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <!-- Dexie (precached by SW) -->
+  <script src="https://unpkg.com/dexie@3.2.7/dist/dexie.min.js"></script>
+  <!-- Leaflet JS (precached by SW) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Shared DB module -->
+  <script type="module" src="db.js"></script>
+  <!-- App logic -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "appId": "sudan.apps.khartoummap",
+  "appName": "خرطوم ماب",
+  "displayName": "خرطوم ماب",
+  "shortName": "خرطوم ماب",
+  "packageId": "sudan.apps.khartoummap",
+  "generatorApp": "bubblewrap-cli",
+  "host": "khartoummap.sudan-apps.org",
+  "iconPath": "icons/icon-512.png",
+  "maskableIconPath": "icons/icon-512.png",
+  "versionCode": 1,
+  "versionName": "1.0.0",
+  "themeColor": "#1a5632",
+  "backgroundColor": "#ffffff",
+  "navigationColor": "#0f3d22",
+  "enableNotifications": false,
+  "splashScreenFadeOutDuration": 300,
+  "startUrl": "index.html",
+  "signingKey": {
+    "alias": "khartoum-map",
+    "path": "./android.keystore"
+  }
+}
