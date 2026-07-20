@@ -1,0 +1,6 @@
+backend/__pycache__/
+*.pyc
+khartoum_map.db
+.env
+android.keystore
+.vercel/

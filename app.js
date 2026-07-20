@@ -25,7 +25,7 @@ const STATUS_LABELS = {
   closed: "مغلق",
   unknown: "غير معروف"
 };
-const BACKEND_URL = "http://localhost:8000"; // configurable
+const BACKEND_URL = window.BACKEND_API_URL || "http://localhost:8000"; // from config.js
 const DATA_FILE = "data/services_khartoum.json";
 
 // --- State ---

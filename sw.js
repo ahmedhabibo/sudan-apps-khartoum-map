@@ -26,10 +26,11 @@ if (typeof workbox !== "undefined") {
 
   const precacheFiles = [
     { url: "./", revision: "v1" },
-    { url: "./index.html", revision: "v1" },
+    { url: "./index.html", revision: "v2" },
     { url: "./styles.css", revision: "v1" },
     { url: "./db.js", revision: "v1" },
-    { url: "./app.js", revision: "v1" },
+    { url: "./app.js", revision: "v2" },
+    { url: "./config.js", revision: "v2" },
     { url: "./manifest.json", revision: "v1" },
     { url: "./data/services_khartoum.json", revision: "v1" },
     { url: DEXIE_CDN, revision: null },

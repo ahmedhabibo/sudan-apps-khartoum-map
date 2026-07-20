@@ -2,20 +2,25 @@
 FastAPI backend for KhartoumMap — offline-first service directory.
 
 Endpoints:
-  GET  /api/services?region=X&since=Y   — list services, optionally filtered
-  GET  /api/services/{service_id}        — single service detail
-  POST /api/updates                      — submit a status update
-  GET  /api/updates?service_id=X         — list updates for a service
-  GET  /api/health                        — health check
-  POST /api/services/import              — bulk import services from JSON
+  GET  /api/services?region=X&type=Y&since=Z   — list services, optionally filtered
+  GET  /api/services/{service_id}               — single service detail
+  POST /api/updates                              — submit a status update
+  GET  /api/updates?service_id=X                — list updates for a service
+  GET  /api/health                              — health check
+  POST /api/services/import                     — bulk import services from JSON
 
-Database: SQLite (schema.sql applied on first run)
+Database: SQLite — auto-seeds on cold start from bundled services_khartoum.json
+Local dev:  KHARTOUM_MAP_DB=./khartoum_map.db
+Vercel:     uses /tmp/khartoum_map.db (ephemeral per cold start; upgrade to
+            Turso/libSQL for persistence across invocations)
+
 Run: uvicorn main:app --reload --host 0.0.0.0 --port 8000
 """
 
 import os
 import sqlite3
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List
@@ -27,9 +32,25 @@ from pydantic import BaseModel, Field
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-DB_PATH = os.environ.get("KHARTOUM_MAP_DB", str(Path(__file__).parent / "khartoum_map.db"))
+
+# On Vercel serverless, /tmp is the only writable directory.
+# For local dev, use a sibling file.
+_is_vercel = os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV")
+if _is_vercel:
+    DB_PATH = "/tmp/khartoum_map.db"
+else:
+    DB_PATH = os.environ.get("KHARTOUM_MAP_DB", str(Path(__file__).parent / "khartoum_map.db"))
+
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
-DATA_FILE = Path(__file__).parent.parent / "data" / "services_khartoum.json"
+
+# For Vercel: the data file is bundled relative to the repo root
+# For local dev: it's at ../data/services_khartoum.json
+_possible_data_files = [
+    Path(__file__).parent.parent / "data" / "services_khartoum.json",  # local dev
+    Path(__file__).parent.parent.parent / "data" / "services_khartoum.json",  # vercel
+    Path("/var/task/data/services_khartoum.json"),  # vercel alt
+]
+DATA_FILE = next((p for p in _possible_data_files if p.exists()), _possible_data_files[0])
 
 app = FastAPI(
     title="KhartoumMap API",
@@ -37,18 +58,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS — allow PWA origins
+# CORS — allow all PWA origins (GitHub Pages + local dev)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten in production
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
 # ---------------------------------------------------------------------------
 # DB helpers
 # ---------------------------------------------------------------------------
+
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -71,22 +93,22 @@ def seed_db_if_empty():
         services = data.get("services", [])
         for svc in services:
             conn.execute(
-                """INSERT OR REPLACE INTO services 
-                   (id, name, type, type_ar, icon, lat, lng, region, neighborhood, 
+                """INSERT OR REPLACE INTO services
+                   (id, name, type, type_ar, icon, lat, lng, region, neighborhood,
                     neighborhood_en, status, report_count, last_reported, phone, hours, notes)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (svc["id"], svc["name"], svc["type"], svc.get("type_ar", ""), 
+                (svc["id"], svc["name"], svc["type"], svc.get("type_ar", ""),
                  svc.get("icon", ""), svc["lat"], svc["lng"], svc.get("region", ""),
                  svc.get("neighborhood", ""), svc.get("neighborhood_en", ""),
                  svc.get("status", "unknown"), svc.get("report_count", 0),
-                 svc.get("last_reported", ""), svc.get("phone", ""), 
+                 svc.get("last_reported", ""), svc.get("phone", ""),
                  svc.get("hours", ""), svc.get("notes", ""))
             )
         conn.commit()
         print(f"Seeded {len(services)} services from {DATA_FILE.name}")
     conn.close()
 
-# Initialize on import
+# Initialize on import (cold start)
 init_db()
 seed_db_if_empty()
 
@@ -102,24 +124,6 @@ class ServiceUpdate(BaseModel):
 class ServiceImport(BaseModel):
     services: List[dict]
 
-class ServiceOut(BaseModel):
-    id: str
-    name: str
-    type: str
-    type_ar: str
-    icon: str
-    lat: float
-    lng: float
-    region: str
-    neighborhood: str
-    neighborhood_en: str
-    status: str
-    report_count: int
-    last_reported: Optional[str]
-    phone: str
-    hours: str
-    notes: str
-
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -128,7 +132,7 @@ async def health():
     conn = get_db()
     count = conn.execute("SELECT COUNT(*) FROM services").fetchone()[0]
     conn.close()
-    return {"status": "ok", "services": count, "db": DB_PATH}
+    return {"status": "ok", "services": count, "db": DB_PATH, "vercel": bool(_is_vercel)}
 
 @app.get("/api/services")
 async def list_services(
@@ -140,19 +144,19 @@ async def list_services(
     conn = get_db()
     query = "SELECT * FROM services WHERE 1=1"
     params = []
-    
+
     if region:
         query += " AND region = ?"
         params.append(region)
-    
+
     if service_type:
         query += " AND type = ?"
         params.append(service_type)
-    
+
     if since:
         query += " AND updated_at > ?"
         params.append(since)
-    
+
     query += " ORDER BY neighborhood, name"
     rows = conn.execute(query, params).fetchall()
     conn.close()
@@ -166,13 +170,13 @@ async def get_service(service_id: str):
     if not svc:
         conn.close()
         raise HTTPException(status_code=404, detail="Service not found")
-    
+
     updates = conn.execute(
         "SELECT * FROM service_updates WHERE service_id = ? ORDER BY timestamp DESC",
         (service_id,)
     ).fetchall()
     conn.close()
-    
+
     result = dict(svc)
     result["updates"] = [dict(u) for u in updates]
     return result
@@ -181,31 +185,28 @@ async def get_service(service_id: str):
 async def submit_update(update: ServiceUpdate):
     """Submit a status update for a service. Also updates the service's corroboration count."""
     conn = get_db()
-    
-    # Verify service exists
+
     svc = conn.execute("SELECT id, report_count FROM services WHERE id = ?", (update.service_id,)).fetchone()
     if not svc:
         conn.close()
         raise HTTPException(status_code=404, detail="Service not found")
-    
-    # Insert the update
+
     conn.execute(
         "INSERT INTO service_updates (service_id, status, notes, timestamp, synced_at) VALUES (?, ?, ?, ?, datetime('now'))",
         (update.service_id, update.status, update.notes, update.timestamp)
     )
-    
-    # Update service status and increment report count
+
     new_report_count = svc["report_count"] + 1
     conn.execute(
-        """UPDATE services 
+        """UPDATE services
            SET status = ?, report_count = ?, last_reported = ?, updated_at = datetime('now')
            WHERE id = ?""",
         (update.status, new_report_count, datetime.now(timezone.utc).strftime("%Y-%m-%d"), update.service_id)
     )
-    
+
     conn.commit()
     conn.close()
-    
+
     return {
         "status": "accepted",
         "service_id": update.service_id,
@@ -222,14 +223,14 @@ async def list_updates(
     conn = get_db()
     query = "SELECT * FROM service_updates"
     params = []
-    
+
     if service_id:
         query += " WHERE service_id = ?"
         params.append(service_id)
-    
+
     query += " ORDER BY timestamp DESC LIMIT ?"
     params.append(limit)
-    
+
     rows = conn.execute(query, params).fetchall()
     conn.close()
     return {"updates": [dict(r) for r in rows], "count": len(rows)}
@@ -241,7 +242,7 @@ async def import_services(data: ServiceImport):
     count = 0
     for svc in data.services:
         conn.execute(
-            """INSERT OR REPLACE INTO services 
+            """INSERT OR REPLACE INTO services
                (id, name, type, type_ar, icon, lat, lng, region, neighborhood,
                 neighborhood_en, status, report_count, last_reported, phone, hours, notes)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
