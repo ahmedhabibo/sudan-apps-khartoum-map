@@ -10,8 +10,8 @@
  * Compatibility: Android Chrome 7+ (importScripts classic syntax, no ES modules in SW)
  */
 
-const WORKBOX_CDN = "https://unpkg.com/workbox-sw@7.4.1/build/workbox-sw.js";
-const DEXIE_CDN = "https://unpkg.com/dexie@4.0.11/dist/dexie.min.js";
+const WORKBOX_CDN = "https://unpkg.com/workbox-sw@6.6.0/build/workbox-sw.js";
+const DEXIE_CDN = "https://unpkg.com/dexie@3.2.7/dist/dexie.min.js";
 const LEAFLET_JS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 const LEAFLET_CSS_CDN = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 
@@ -26,11 +26,11 @@ if (typeof workbox !== "undefined") {
 
   const precacheFiles = [
     { url: "./", revision: "v1" },
-    { url: "./index.html", revision: "v4" },
-    { url: "./styles.css", revision: "v3" },
-    { url: "./db.js", revision: "v3" },
-    { url: "./app.js", revision: "v4" },
-    { url: "./config.js", revision: "v4" },
+    { url: "./index.html", revision: "v5" },
+    { url: "./styles.css", revision: "v4" },
+    { url: "./db.js", revision: "v4" },
+    { url: "./app.js", revision: "v5" },
+    { url: "./config.js", revision: "v5" },
     { url: "./manifest.json", revision: "v1" },
     { url: "./data/services_khartoum.json", revision: "v1" },
     { url: DEXIE_CDN, revision: null },
