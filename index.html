@@ -44,6 +44,17 @@
 
   <!-- Backend URL configuration -->
   <script src="config.js"></script>
+  <!-- Service Worker registration -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").then(
+          (reg) => console.log("[SW] registered, scope:", reg.scope),
+          (err) => console.warn("[SW] registration failed:", err)
+        );
+      });
+    }
+  </script>
   <!-- Shared DB module -->
   <script type="module" src="db.js"></script>
   <!-- App logic -->
